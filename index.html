@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meal Prep &amp; Gym Nutrition Calculator — Groceries, TDEE &amp; Macros</title>
+<meta name="description" content="Calculate exactly how much raw chicken, rice, and vegetables to buy for meal prep, plus a full gym-style TDEE and macro calculator: BMR, calories, protein, fat, carbs, fiber, and auto-suggested veggies for your goal.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="scale-strip" id="scaleStrip" aria-live="polite">
+  <div class="scale-strip__inner">
+    <span class="scale-strip__label">Meal-prep boxes in this batch</span>
+    <span class="scale-strip__value" id="liveTotalMeals">0</span>
+    <span class="scale-strip__unit">boxes</span>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="wrap">
+    <p class="eyebrow">Kitchen scale · not a guessing game</p>
+    <h1>Meal Prep Quantity Calculator</h1>
+    <p class="lede">Tell it how many people, how many meals, and how many days. It tells you exactly how much raw chicken, rice, and vegetables to buy - accounting for what cooking actually does to the weight.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <nav class="tabs" role="tablist" aria-label="Calculator sections">
+    <button class="tab is-active" role="tab" id="tab-mealprep" aria-selected="true" aria-controls="panel-mealprep" data-target="panel-mealprep" type="button">
+      <svg class="tab__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1.5" stroke-width="1.8"/><path d="M8.5 7.5h7M8.5 11h7M8.5 14.5h4" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Meal Prep Calculator
+    </button>
+    <button class="tab" role="tab" id="tab-protein" aria-selected="false" aria-controls="panel-protein" data-target="panel-protein" type="button">
+      <svg class="tab__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 9.5a2.2 2.2 0 1 1 3.6-2.5M17.5 9.5a2.2 2.2 0 1 0-3.6-2.5M6.5 14.5a2.2 2.2 0 1 0 3.6 2.5M17.5 14.5a2.2 2.2 0 1 1-3.6 2.5M8.3 8.8l7.4 6.4M15.7 8.8l-7.4 6.4" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Nutrition &amp; Macros
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       TAB 1 — MEAL PREP CALCULATOR
+       ============================================================ -->
+  <div class="tab-panel" id="panel-mealprep" role="tabpanel" aria-labelledby="tab-mealprep">
+
+    <!-- STEP 1 -->
+    <section class="card" id="basics-section" aria-labelledby="basics-h">
+      <div class="card__head">
+        <span class="step-tag">Step 1</span>
+        <h2 id="basics-h">Who are you feeding, and for how long?</h2>
+      </div>
+      <div class="grid grid--3">
+        <label class="field">
+          <span class="field__label">People eating</span>
+          <input type="number" id="people" min="1" step="1" placeholder="e.g. 3" inputmode="numeric">
+          <span class="field__error" id="err-people"></span>
+        </label>
+        <label class="field">
+          <span class="field__label">Meals per day</span>
+          <input type="number" id="mealsPerDay" min="1" step="1" placeholder="e.g. 2" inputmode="numeric">
+          <span class="field__error" id="err-mealsPerDay"></span>
+        </label>
+        <label class="field">
+          <span class="field__label">Number of days</span>
+          <input type="number" id="days" min="1" step="1" placeholder="e.g. 5" inputmode="numeric">
+          <span class="field__error" id="err-days"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="card" id="food-section" aria-labelledby="food-h">
+      <div class="card__head">
+        <span class="step-tag">Step 2</span>
+        <h2 id="food-h">Pick what's going in the containers</h2>
+        <p class="card__hint">Check an item, set the cooked weight you want per meal (in grams). Leave the rest unchecked.</p>
+      </div>
+
+      <div class="food-group" data-category="protein">
+        <h3 class="food-group__title"><span class="dot dot--protein"></span> Protein</h3>
+        <div class="food-list" id="list-protein"></div>
+      </div>
+
+      <div class="food-group" data-category="carb">
+        <h3 class="food-group__title"><span class="dot dot--carb"></span> Carb</h3>
+        <div class="food-list" id="list-carb"></div>
+      </div>
+
+      <div class="food-group" data-category="veg">
+        <h3 class="food-group__title"><span class="dot dot--veg"></span> Vegetables</h3>
+        <div class="food-list" id="list-veg"></div>
+      </div>
+
+      <span class="field__error" id="err-foods"></span>
+    </section>
+
+    <div class="actions">
+      <button class="btn btn--primary" id="calcBtn" type="button">Calculate raw quantities</button>
+      <button class="btn btn--ghost" id="resetBtn" type="button">Reset everything</button>
+    </div>
+
+    <!-- RESULTS -->
+    <section class="results" id="results" hidden aria-labelledby="results-h">
+      <div class="facts-card" id="factsCard">
+        <div class="facts-card__masthead">
+          <span class="facts-card__kicker">Grocery Facts</span>
+          <h2 id="results-h">Raw Quantities To Buy</h2>
+        </div>
+
+        <div class="facts-row facts-row--thick">
+          <span>Meal-prep boxes needed
+            <button class="info-icon" type="button" data-tip-key="mealPrepBoxes" aria-label="What does this mean?">i</button>
+          </span>
+          <span class="mono" id="fBoxes">0</span>
+        </div>
+        <div class="facts-row">
+          <span>People × Meals/day × Days</span>
+          <span class="mono" id="fFormula">—</span>
+        </div>
+
+        <div id="fItems" class="facts-items"></div>
+
+        <p class="facts-card__disclaimer">
+          Cooking yield may vary based on food brand, water, oil, cooking time, and method. For best accuracy, weigh your food once before and after cooking and update the custom yield.
+        </p>
+      </div>
+
+      <div class="actions actions--export">
+        <button class="btn btn--primary" id="exportBtn" type="button">Export result card as PNG</button>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============================================================
+       TAB 2 — NUTRITION & MACROS
+       ============================================================ -->
+  <div class="tab-panel" id="panel-protein" role="tabpanel" aria-labelledby="tab-protein" hidden>
+
+    <!-- PART 1: TDEE + GOAL CALORIES -->
+    <section class="card">
+      <div class="card__head">
+        <span class="step-tag">Nutrition · Part 1</span>
+        <h2>What's your daily calorie &amp; macro target?
+          <button class="info-icon" type="button" data-tip-key="tdeeIntro" aria-label="What does this mean?">i</button>
+        </h2>
+        <p class="card__hint">This runs the same formula real coaching apps use: BMR → TDEE → goal-adjusted calories → protein / fat / carb / fiber split. It's a solid planning estimate, not a medical prescription — check with a doctor or dietitian for anything clinical.</p>
+      </div>
+
+      <div class="grid grid--3">
+        <label class="field">
+          <span class="field__label">Sex (for BMR formula)
+            <button class="info-icon" type="button" data-tip-key="sexBmr" aria-label="What does this mean?">i</button>
+          </span>
+          <select id="sex">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Age (years)</span>
+          <input type="number" id="age" min="14" max="90" step="1" placeholder="e.g. 28">
+        </label>
+        <label class="field">
+          <span class="field__label">Height</span>
+          <div class="unit-input" id="heightUnitInputWrap">
+            <input type="number" id="height" min="1" step="0.1" placeholder="e.g. 175">
+            <div class="ftin-group" id="heightFtInWrap" hidden>
+              <input type="number" id="heightFeet" min="1" max="8" step="1" placeholder="ft" inputmode="numeric">
+              <input type="number" id="heightInches" min="0" max="11.9" step="0.1" placeholder="in" inputmode="decimal">
+            </div>
+            <select id="heightUnit">
+              <option value="cm">cm</option>
+              <option value="in">in (total)</option>
+              <option value="ftin">ft + in</option>
+            </select>
+          </div>
+          <span class="field__hint" id="heightHint"></span>
+        </label>
+      </div>
+
+      <div class="grid grid--3">
+        <label class="field">
+          <span class="field__label">Current body weight</span>
+          <div class="unit-input">
+            <input type="number" id="bodyWeight" min="1" placeholder="e.g. 70">
+            <select id="bodyWeightUnit">
+              <option value="kg">kg</option>
+              <option value="lb">lb</option>
+            </select>
+          </div>
+        </label>
+        <label class="field">
+          <span class="field__label">Target weight (optional)
+            <button class="info-icon" type="button" data-tip-key="targetWeight" aria-label="What does this mean?">i</button>
+          </span>
+          <input type="number" id="targetWeight" min="1" placeholder="same unit as above">
+        </label>
+        <label class="field">
+          <span class="field__label">Body fat % (optional)
+            <button class="info-icon" type="button" data-tip-key="bodyFatPct" aria-label="What does this mean?">i</button>
+          </span>
+          <input type="number" id="bodyFatPercent" min="3" max="60" step="0.1" placeholder="auto-estimated if blank">
+          <span class="field__hint" id="bodyFatHint"></span>
+        </label>
+      </div>
+
+      <div class="grid grid--2">
+        <label class="field">
+          <span class="field__label">Target body fat % (optional)
+            <button class="info-icon" type="button" data-tip-key="targetBodyFat" aria-label="What does this mean?">i</button>
+          </span>
+          <input type="number" id="targetBodyFatPercent" min="3" max="60" step="0.1" placeholder="e.g. 15">
+        </label>
+        <label class="field">
+          <span class="field__label">Suggested body weight
+            <button class="info-icon" type="button" data-tip-key="suggestedWeight" aria-label="What does this mean?">i</button>
+          </span>
+          <div class="field__readout" id="suggestedWeightReadout">Enter a target body fat % above</div>
+        </label>
+      </div>
+
+      <div class="grid grid--3">
+        <label class="field">
+          <span class="field__label">Goal
+            <button class="info-icon" type="button" data-tip-key="goalType" aria-label="What does this mean?">i</button>
+          </span>
+          <select id="goalType">
+            <option value="cut">Lose fat (cut)</option>
+            <option value="maintain" selected>Maintain weight</option>
+            <option value="leanbulk">Lean bulk (slow muscle gain)</option>
+            <option value="bulk">Build muscle (bulk)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Goal pace
+            <button class="info-icon" type="button" data-tip-key="weeklyRate" aria-label="What does this mean?">i</button>
+          </span>
+          <select id="weeklyRate">
+            <option value="0">Conservative (low end of range)</option>
+            <option value="0.5" selected>Moderate (middle of range)</option>
+            <option value="1">Aggressive (high end of range)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Activity level
+            <button class="info-icon" type="button" data-tip-key="activityLevel" aria-label="What does this mean?">i</button>
+          </span>
+          <select id="activityLevel">
+            <option value="1.2">Sedentary - desk job, little exercise</option>
+            <option value="1.375">Lightly active - 1–3 workouts/week</option>
+            <option value="1.55" selected>Moderately active - 3–5 workouts/week</option>
+            <option value="1.725">Very active - 6–7 workouts/week</option>
+            <option value="1.9">Athlete - hard training + physical job</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="grid grid--3">
+        <label class="field">
+          <span class="field__label">Fat target (% of calories, 20–30%)
+            <button class="info-icon" type="button" data-tip-key="fatPercent" aria-label="What does this mean?">i</button>
+          </span>
+          <input type="number" id="fatPercent" min="20" max="30" step="1" value="25">
+        </label>
+        <label class="field">
+          <span class="field__label">Meals per day (for meal breakdown)
+            <button class="info-icon" type="button" data-tip-key="mealsPerDayNutrition" aria-label="What does this mean?">i</button>
+          </span>
+          <input type="number" id="nutritionMealsPerDay" min="1" max="10" step="1" value="3">
+        </label>
+      </div>
+
+      <div class="warnings-box" id="warningsBox" hidden></div>
+
+      <div class="formula-box" id="proteinFormulaOut" hidden></div>
+
+      <div class="protein-result" id="tdeeResult" hidden>
+        <div class="facts-items">
+          <div class="facts-item">
+            <div class="facts-item__head"><span class="facts-item__name">Daily Targets</span></div>
+            <div class="facts-item__grid">
+              <div class="facts-stat facts-stat--raw">
+                <span class="facts-stat__label">Calories/day
+                  <button class="info-icon info-icon--light" type="button" data-tip-key="calorieTarget" aria-label="What does this mean?">i</button>
+                </span>
+                <span class="facts-stat__value" id="tCalories">0 kcal</span>
+              </div>
+              <div class="facts-stat"><span class="facts-stat__label">Protein/day</span><span class="facts-stat__value" id="tProtein">0 g</span></div>
+              <div class="facts-stat"><span class="facts-stat__label">Fat/day</span><span class="facts-stat__value" id="tFat">0 g</span></div>
+              <div class="facts-stat"><span class="facts-stat__label">Carbs/day</span><span class="facts-stat__value" id="tCarbs">0 g</span></div>
+              <div class="facts-stat"><span class="facts-stat__label">Fiber/day</span><span class="facts-stat__value" id="tFiber">0 g</span></div>
+              <div class="facts-stat"><span class="facts-stat__label">BMR / TDEE</span><span class="facts-stat__value" id="tBmrTdee">0 / 0</span></div>
+              <div class="facts-stat"><span class="facts-stat__label">Water/day</span><span class="facts-stat__value" id="tWater">0 L</span></div>
+            </div>
+          </div>
+
+          <div class="facts-item">
+            <div class="facts-item__head"><span class="facts-item__name">Body Composition</span></div>
+            <div class="facts-item__grid">
+              <div class="facts-stat"><span class="facts-stat__label">BMI</span><span class="facts-stat__value" id="tBmi">0</span></div>
+              <div class="facts-stat"><span class="facts-stat__label">BMI category</span><span class="facts-stat__value" id="tBmiCategory">—</span></div>
+              <div class="facts-stat"><span class="facts-stat__label">Lean body mass</span><span class="facts-stat__value" id="tLbm">—</span></div>
+              <div class="facts-stat"><span class="facts-stat__label">FFMI</span><span class="facts-stat__value" id="tFfmi">—</span></div>
+              <div class="facts-stat"><span class="facts-stat__label">Body fat category</span><span class="facts-stat__value" id="tBfCategory">—</span></div>
+              <div class="facts-stat facts-stat--raw">
+                <span class="facts-stat__label">Suggested body weight
+                  <button class="info-icon info-icon--light" type="button" data-tip-key="suggestedWeight" aria-label="What does this mean?">i</button>
+                </span>
+                <span class="facts-stat__value" id="tSuggestedWeight">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="formula-box" id="tdeeFormulaOut"></div>
+        <p class="facts-card__disclaimer" id="tdeeProjectionOut"></p>
+        <p class="facts-card__disclaimer">
+          BMR uses Mifflin–St Jeor by default, or Katch–McArdle when body fat % is entered. Fiber uses the Institute of Medicine guideline of ~14 g per 1,000 kcal (clamped 25–45 g). Actual needs vary by age, sex, body composition, medications, and training load — these are planning estimates, not diagnostics.
+        </p>
+      </div>
+
+      <div class="actions actions--export">
+        <button class="btn btn--primary" id="tdeeExportBtn" type="button">Export daily targets as PNG</button>
+      </div>
+    </section>
+
+    <!-- PART 1B: MEAL BREAKDOWN -->
+    <section class="card">
+      <div class="card__head">
+        <span class="step-tag">Nutrition · Part 1b</span>
+        <h2>Meal-by-meal breakdown
+          <button class="info-icon" type="button" data-tip-key="mealBreakdown" aria-label="What does this mean?">i</button>
+        </h2>
+        <p class="card__hint">Your daily targets split evenly across the "Meals per day" number set above.</p>
+      </div>
+      <div class="protein-result" id="mealBreakdownResult" hidden>
+        <div id="mealBreakdownGrid" class="mb-grid"></div>
+      </div>
+      <p class="card__hint" id="mealBreakdownEmpty">Fill in Part 1 above to see this.</p>
+    </section>
+
+    <!-- PART 1C: AUTOMATIC FOOD RECOMMENDATION -->
+    <section class="card">
+      <div class="card__head">
+        <span class="step-tag">Nutrition · Part 1c</span>
+        <h2>How much food to hit these targets today
+          <button class="info-icon" type="button" data-tip-key="foodRecommend" aria-label="What does this mean?">i</button>
+        </h2>
+        <p class="card__hint">Using the foods picked below in Part 2, this works backward from your full-day targets to the cooked (plate) weight and raw (shopping) weight needed for the whole day — plus a veggie suggestion to close any fiber gap.</p>
+      </div>
+      <div class="protein-result" id="foodRecommendResult" hidden>
+        <div class="formula-box" id="foodRecommendFormula"></div>
+        <div class="facts-items" id="foodRecommendGrid"></div>
+      </div>
+      <p class="card__hint" id="foodRecommendEmpty">Fill in Part 1 above, then pick foods in Part 2 below, to see this.</p>
+    </section>
+
+    <!-- PART 2: PER-MEAL COVERAGE -->
+    <section class="card">
+      <div class="card__head">
+        <span class="step-tag">Nutrition · Part 2</span>
+        <h2>How much does one meal cover?
+          <button class="info-icon" type="button" data-tip-key="proteinDensity" aria-label="What does this mean?">i</button>
+        </h2>
+        <p class="card__hint">Pick a protein, carb, veggie, and fat source — and their cooked weight per meal. We'll total protein, fat, carbs, fiber, and calories, and show what share of your daily targets (from Part 1) that meal covers. Leave any group blank to skip it.</p>
+      </div>
+
+      <div class="macro-group">
+        <h3 class="macro-group__title"><span class="dot dot--protein"></span> Protein</h3>
+        <div class="grid grid--3">
+          <label class="field">
+            <span class="field__label">Protein food</span>
+            <select id="proteinFoodSelect"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">Cooked grams per meal</span>
+            <input type="number" id="proteinMealGrams" min="1" placeholder="e.g. 200">
+          </label>
+          <label class="field">
+            <span class="field__label">Density (g protein / 100g cooked)</span>
+            <input type="number" id="proteinDensityInput" min="1" step="0.5" placeholder="auto-filled">
+          </label>
+        </div>
+      </div>
+
+      <div class="macro-group">
+        <h3 class="macro-group__title"><span class="dot dot--carb"></span> Carbs
+          <button class="info-icon" type="button" data-tip-key="carbDensity" aria-label="What does this mean?">i</button>
+        </h3>
+        <div class="grid grid--3">
+          <label class="field">
+            <span class="field__label">Carb food</span>
+            <select id="carbFoodSelect"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">Cooked grams per meal</span>
+            <input type="number" id="carbMealGrams" min="1" placeholder="e.g. 200">
+          </label>
+          <label class="field">
+            <span class="field__label">Density (g carbs / 100g cooked)</span>
+            <input type="number" id="carbDensityInput" min="1" step="0.5" placeholder="auto-filled">
+          </label>
+        </div>
+      </div>
+
+      <div class="macro-group">
+        <h3 class="macro-group__title"><span class="dot dot--veg"></span> Fiber / Veggies
+          <button class="info-icon" type="button" data-tip-key="fiberDensity" aria-label="What does this mean?">i</button>
+        </h3>
+        <div class="grid grid--3">
+          <label class="field">
+            <span class="field__label">Veggie</span>
+            <select id="vegFoodSelect"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">Cooked grams per meal</span>
+            <input type="number" id="vegMealGrams" min="1" placeholder="e.g. 150">
+          </label>
+          <label class="field">
+            <span class="field__label">Density (g fiber / 100g cooked)</span>
+            <input type="number" id="fiberDensityInput" min="0.5" step="0.1" placeholder="auto-filled">
+          </label>
+        </div>
+      </div>
+
+      <div class="macro-group">
+        <h3 class="macro-group__title"><span class="dot dot--fat"></span> Fats / Oils
+          <button class="info-icon" type="button" data-tip-key="fatDensity" aria-label="What does this mean?">i</button>
+        </h3>
+        <div class="grid grid--3">
+          <label class="field">
+            <span class="field__label">Fat source</span>
+            <select id="fatFoodSelect"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">Grams per meal</span>
+            <input type="number" id="fatMealGrams" min="1" placeholder="e.g. 10">
+          </label>
+          <label class="field">
+            <span class="field__label">Density (g fat / 100g)</span>
+            <input type="number" id="fatDensityInput" min="0.5" step="0.5" placeholder="auto-filled">
+          </label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn--ghost btn--small" id="syncFromCalcBtn" type="button">↺ Use foods from Meal Prep tab</button>
+        <button class="btn btn--primary" id="proteinCalcBtn" type="button">Calculate coverage</button>
+      </div>
+
+      <div class="protein-result" id="proteinResult" hidden>
+        <div class="formula-box" id="proteinFormula2Out"></div>
+        <div class="facts-items">
+          <div class="facts-item">
+            <div class="facts-item__head"><span class="facts-item__name">This meal delivers</span></div>
+            <div class="facts-item__grid">
+              <div class="facts-stat">
+                <span class="facts-stat__label">Calories</span>
+                <span class="facts-stat__value" id="pCaloriesPerMeal">0 kcal</span>
+              </div>
+              <div class="facts-stat">
+                <span class="facts-stat__label">Protein</span>
+                <span class="facts-stat__value" id="pProteinPerMeal">0 g</span>
+              </div>
+              <div class="facts-stat">
+                <span class="facts-stat__label">Fat</span>
+                <span class="facts-stat__value" id="pFatPerMeal">0 g</span>
+              </div>
+              <div class="facts-stat">
+                <span class="facts-stat__label">Carbs</span>
+                <span class="facts-stat__value" id="pCarbsPerMeal">0 g</span>
+              </div>
+              <div class="facts-stat">
+                <span class="facts-stat__label">Fiber</span>
+                <span class="facts-stat__value" id="pFiberPerMeal">0 g</span>
+              </div>
+              <div class="facts-stat facts-stat--raw">
+                <span class="facts-stat__label">% daily calories</span>
+                <span class="facts-stat__value" id="pCaloriesPercentDaily">0%</span>
+              </div>
+              <div class="facts-stat facts-stat--raw">
+                <span class="facts-stat__label">% daily protein
+                  <button class="info-icon info-icon--light" type="button" data-tip-key="percentDaily" aria-label="What does this mean?">i</button>
+                </span>
+                <span class="facts-stat__value" id="pPercentDaily">0%</span>
+              </div>
+              <div class="facts-stat facts-stat--raw">
+                <span class="facts-stat__label">% daily fat</span>
+                <span class="facts-stat__value" id="pFatPercentDaily">0%</span>
+              </div>
+              <div class="facts-stat facts-stat--raw">
+                <span class="facts-stat__label">% daily carbs</span>
+                <span class="facts-stat__value" id="pCarbsPercentDaily">0%</span>
+              </div>
+              <div class="facts-stat facts-stat--raw">
+                <span class="facts-stat__label">% daily fiber</span>
+                <span class="facts-stat__value" id="pFiberPercentDaily">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="veg-suggest" id="vegSuggest" hidden>
+          <h3 class="macro-group__title"><span class="dot dot--veg"></span> Suggested veggies to close your fiber gap
+            <button class="info-icon" type="button" data-tip-key="vegSuggestTip" aria-label="What does this mean?">i</button>
+          </h3>
+          <p class="card__hint" id="vegSuggestIntro"></p>
+          <div class="facts-item__grid facts-item__grid--3" id="vegSuggestGrid"></div>
+        </div>
+
+        <p class="facts-card__disclaimer">
+          Protein, fat, carb, and fiber density figures are typical USDA FoodData Central averages for the cooked form of each food and will vary by product and preparation. Check the label or <a href="https://fdc.nal.usda.gov/" target="_blank" rel="noopener">USDA FoodData Central</a> for your specific food.
+        </p>
+      </div>
+
+      <div class="actions actions--export" id="mealExportWrap" hidden>
+        <button class="btn btn--primary" id="mealExportBtn" type="button">Export meal coverage as PNG</button>
+      </div>
+    </section>
+
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p><strong>Data source note:</strong> Cooking-yield, expansion-factor, protein/fat/carb/fiber-density, BMR, TDEE, and calorie-target figures here are general planning estimates, not lab measurements or medical guidance. For nutrition values and precise food-weight references, check the USDA FoodData Central database and the USDA Food Buying Guide, and talk to a doctor or registered dietitian before using these numbers for medical, athletic, or commercial purposes.</p>
+    <p class="site-footer__meta">No login. No database. No tracking. Nothing you type ever leaves this page.</p>
+  </div>
+</footer>
+
+<div class="tooltip-popover" id="tooltipPopover" role="tooltip" hidden>
+  <p id="tooltipText"></p>
+  <button class="tooltip-popover__close" id="tooltipClose" type="button" aria-label="Close explanation">×</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
